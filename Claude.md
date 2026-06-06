@@ -30,16 +30,22 @@ pfuetze/
 
 ## Infrastructure facts
 
-**Proxmox node:** `chuebel` at `10.130.10.10`, accessed as `root` via SSH key `~/.ssh/id_rsa`.
+**Proxmox node:** `chuebel` at `10.130.10.10`. SSH access as `root` (node provisioning). Proxmox API user `gigu@pam` (VM management — Packer, OpenTofu). SSH key `~/.ssh/id_rsa`.
 
 **VMs (all Debian, managed by Proxmox):**
-| Name | IP | Bridge | Purpose |
-|---|---|---|---|
-| `bina01` | 10.130.30.102/24 | vmbr300 | PostgreSQL + Python data scripts |
-| `timemachine01` | 10.130.30.111/24 | vmbr300 | Time Machine (Samba) |
-| `pihole01` | dynamic | vmbr300 | Pi-hole DNS (Docker) |
-| `dyndns01` | dynamic | — | Dynamic DNS updater |
-| `test01` | dynamic | — | Test/scratch VM |
+| Name | VMID | IP | Bridge | Purpose |
+|---|---|---|---|---|
+| `bina01` | 102 | 10.130.30.102/24 | vmbr300 | PostgreSQL + Python data scripts |
+| `timemachine01` | 104 | 10.130.30.111/24 | vmbr300 | Time Machine (Samba) |
+| `pihole01` | 101 | 10.130.30.10/24 | vmbr300 | Pi-hole DNS (Docker) |
+| `dyndns01` | 103 | 10.130.30.112/24 | vmbr300 | Dynamic DNS updater |
+| `test01` | 100 | 10.130.30.101/24 | vmbr300 | Test/scratch VM |
+
+**Proxmox templates:**
+| Name | VMID | Notes |
+|---|---|---|
+| `debian-base-13` | 9002 | Current Packer output — used by OpenTofu as clone source |
+| `debian12-template` | 9001 | Legacy template — do not use |
 
 **Firewall:** IPFire (`stinkfisch`) at `10.130.2.1` — being replaced by OPNsense. Do not configure IPFire. OPNsense config will be added later under `config/playbooks/network.yml` using the `ansibleguy.opnsense` collection.
 
@@ -61,8 +67,9 @@ pfuetze/
 
 - Provider: `bpg/proxmox` (not the older `telmate` provider).
 - State: local for now (`infra/terraform.tfstate`), gitignored.
-- Sensitive vars (Proxmox API credentials) in `infra/terraform.tfvars`, gitignored.
-- VM definitions map directly from the `kvm:` blocks in the old `host_vars`. Each VM gets its own `.tf` file under `infra/vms/`.
+- Structure: flat — all `.tf` files directly in `infra/`. One file per VM. Shared values in `infra/locals.tf`.
+- SSH public key for cloud-init lives in `keys/gigu.pub` (committed to repo).
+- VM definitions map directly from the `kvm:` blocks in the old `host_vars`. Each VM gets its own `.tf` file in `infra/`.
 - Existing VMs are imported via `tofu import`, never destroyed and recreated.
 
 ## Packer conventions
@@ -78,7 +85,7 @@ pfuetze/
 
 - All tool secrets go in `.env` (gitignored). Copy `.env.example` to get started.
 - Ansible: Vault files encrypted with `ansible-vault`. Key at `./vault-password` (gitignored, lives on local machine).
-- OpenTofu: `bpg/proxmox` reads `PROXMOX_VE_USERNAME`, `PROXMOX_VE_PASSWORD`, `PROXMOX_VE_ENDPOINT` natively from env — no `terraform.tfvars` needed for Proxmox credentials.
+- OpenTofu: endpoint and username are hardcoded in `infra/providers.tf` (not secrets). Only `PROXMOX_VE_PASSWORD` comes from `.env`.
 - Packer: non-secret vars in committed `*.pkrvars.hcl`; password in `.env` as `PKR_VAR_proxmox_password`.
 - Never commit secrets. Never hardcode credentials in any file.
 
@@ -86,7 +93,7 @@ pfuetze/
 
 The Justfile is the single entrypoint and must always reflect what actually exists. Do not add targets for phases or tools that haven't been implemented yet. Update the Justfile in the same step as the work it exposes.
 
-Current Justfile targets: `default` (lists available targets), `image` (build Packer template, default: `debian-base-13`), `images-validate` (validate Packer template without building).
+Current Justfile targets: `default` (lists available targets), `image` (build Packer template, default: `debian-base-13`), `images-init`, `images-validate`, `infra-init`, `infra-plan`, `infra-apply`.
 
 ## Migration status
 
@@ -94,7 +101,11 @@ Track which parts have been migrated. Update this section as work progresses.
 
 - [x] **Phase 0** — Repo skeleton and Justfile: `infra/`, `config/`, `images/` created; Justfile has `default` + `image` + `images-validate` targets
 - [x] **Phase 1** — Packer: Debian 13 base image template complete (`images/debian-base-13/debian-base-13.pkr.hcl`, `http/preseed.cfg`, `*.pkrvars.hcl`); builds to Proxmox template VMID 9002 named `debian-base-13`; run with `just image`
-- [ ] **Phase 2** — OpenTofu: VM lifecycle (replaces `manage_vms.yml`). Requirements: cloud-init must create `gigu` user + inject root SSH key so Ansible can connect on first boot.
+- [ ] **Phase 2** — OpenTofu: VM lifecycle. Replaces `manage_vms.yml` + `configure_single_vm.yml` + `decommission_vm.yml` from `ansible-proxmox`. Snapshot playbooks (`create_snapshot.yml`, `rollback_snapshot.yml`, `remove_snapshot.yml`) migrate to `config/playbooks/` in Phase 3 — they are not replaced by OpenTofu.
+  - Cloud-init: use `bpg/proxmox` native `initialization` block — `user_account` (username `gigu` + SSH key), `ip_config` (static IP). No custom snippet file. Root is locked by Packer template; Ansible connects as `gigu` and escalates via `sudo su -`.
+  - All VMs clone from template VMID 9002. Each VM has its own `.tf` file in `infra/`. Existing VMs are imported, never destroyed.
+  - Credentials: endpoint + username hardcoded in `infra/providers.tf`. Only `PROXMOX_VE_PASSWORD` from `.env`.
+  - See `infra/phase2-tasks.md` for the step-by-step task checklist (deleted once phase is complete).
 - [ ] **Phase 3** — Ansible: Proxmox node config (replaces `proxmox-ansible`).
 - [ ] **Phase 4** — Ansible: VM service config (replaces `ansible-home`). Base role must: create gigu user, deploy SSH keys to root + gigu, add gigu to sudo, deploy `sshd_config.d/additional.conf` (disables root SSH + password auth).
 - [ ] **Phase 5** — OPNsense config (replaces IPFire hand-crafted setup)

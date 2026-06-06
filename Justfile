@@ -23,3 +23,17 @@ images-init target="debian-base-13":
 images-validate target="debian-base-13":
     cd images/{{target}} && packer validate -var-file={{target}}.pkrvars.hcl .
 
+# ── infra (opentofu) ──────────────────────────────────────────────────────────
+
+# initialise opentofu providers (run once after cloning)
+infra-init:
+    cd infra && tofu init
+
+# show planned changes
+infra-plan:
+    cd infra && tofu plan
+
+# apply changes
+infra-apply:
+    cd infra && tofu apply
+
