@@ -108,6 +108,7 @@ build {
       "DEBIAN_FRONTEND=noninteractive apt-get install -y cloud-init qemu-guest-agent locales",
       "echo 'de_CH.UTF-8 UTF-8' >> /etc/locale.gen && locale-gen",
       "systemctl enable qemu-guest-agent",
+      "printf 'auto lo\\niface lo inet loopback\\n\\nsource /etc/network/interfaces.d/*\\n' > /etc/network/interfaces",
       "cloud-init clean",
       "truncate -s 0 /etc/machine-id",
       "rm -f /var/lib/dbus/machine-id",

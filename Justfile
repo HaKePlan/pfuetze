@@ -37,3 +37,11 @@ infra-plan:
 infra-apply:
     cd infra && tofu apply
 
+# apply changes for single vm (target needs prefix: proxmox_virtual_environment_vm)
+infra-apply-target target:
+    cd infra && tofu apply -target {{target}}
+
+# destroy single vm (target needs prefix: proxmox_virtual_environment_vm)
+infra-destroy-target target:
+    cd infra && tofu destroy -target {{target}}
+

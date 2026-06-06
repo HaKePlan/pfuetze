@@ -101,14 +101,24 @@ Track which parts have been migrated. Update this section as work progresses.
 
 - [x] **Phase 0** — Repo skeleton and Justfile: `infra/`, `config/`, `images/` created; Justfile has `default` + `image` + `images-validate` targets
 - [x] **Phase 1** — Packer: Debian 13 base image template complete (`images/debian-base-13/debian-base-13.pkr.hcl`, `http/preseed.cfg`, `*.pkrvars.hcl`); builds to Proxmox template VMID 9002 named `debian-base-13`; run with `just image`
-- [ ] **Phase 2** — OpenTofu: VM lifecycle. Replaces `manage_vms.yml` + `configure_single_vm.yml` + `decommission_vm.yml` from `ansible-proxmox`. Snapshot playbooks (`create_snapshot.yml`, `rollback_snapshot.yml`, `remove_snapshot.yml`) migrate to `config/playbooks/` in Phase 3 — they are not replaced by OpenTofu.
-  - Cloud-init: use `bpg/proxmox` native `initialization` block — `user_account` (username `gigu` + SSH key), `ip_config` (static IP). No custom snippet file. Root is locked by Packer template; Ansible connects as `gigu` and escalates via `sudo su -`.
-  - All VMs clone from template VMID 9002. Each VM has its own `.tf` file in `infra/`. Existing VMs are imported, never destroyed.
+- [x] **Phase 2** — OpenTofu: VM lifecycle. Replaces `manage_vms.yml` + `configure_single_vm.yml` + `decommission_vm.yml` from `ansible-proxmox`. Snapshot playbooks (`create_snapshot.yml`, `rollback_snapshot.yml`, `remove_snapshot.yml`) migrate to `config/playbooks/` in Phase 3 — they are not replaced by OpenTofu.
+  - Cloud-init: use `bpg/proxmox` native `initialization` block — `user_account` (username `gigu` + SSH key), `ip_config` (static IP), `dns`. No custom snippet file. Root is locked by Packer template; Ansible connects as `gigu` and escalates via `sudo su -`.
+  - All VMs have their own `.tf` file in `infra/`. Existing VMs were imported via `tofu import`. New VMs clone from template VMID 9002 (`scsi_hardware = "virtio-scsi-single"`, `disk.iothread = true`).
+  - All VM resources require: `agent`, `initialization`, `serial_device`, `operating_system {}`, `lifecycle { ignore_changes = [operating_system] }`.
+  - Packer fix: `/etc/network/interfaces` set to loopback + `source /etc/network/interfaces.d/*` so cloud-init is the sole network manager (no DHCP leak).
   - Credentials: endpoint + username hardcoded in `infra/providers.tf`. Only `PROXMOX_VE_PASSWORD` from `.env`.
-  - See `infra/phase2-tasks.md` for the step-by-step task checklist (deleted once phase is complete).
 - [ ] **Phase 3** — Ansible: Proxmox node config (replaces `proxmox-ansible`).
 - [ ] **Phase 4** — Ansible: VM service config (replaces `ansible-home`). Base role must: create gigu user, deploy SSH keys to root + gigu, add gigu to sudo, deploy `sshd_config.d/additional.conf` (disables root SSH + password auth).
 - [ ] **Phase 5** — OPNsense config (replaces IPFire hand-crafted setup)
+
+## Before adding CI/CD
+
+These must be solved before any pipeline work:
+
+- **OpenTofu remote state** — currently `infra/terraform.tfstate` is local and gitignored. Losing it requires reimporting all VMs. Needs an S3-compatible backend (MinIO self-hosted or similar) before CI/CD.
+- **Packer + OpenTofu secrets** — currently in `.env` (gitignored, local only). Needs a pipeline-compatible secrets solution (e.g. Vault, GitHub Actions secrets) before automating `just image` or `just infra-apply`.
+- **Packer preseed.cfg network access** — during a Packer build, the temporary Proxmox VM fetches `preseed.cfg` via HTTP from the machine running Packer (`{{ .HTTPIP }}:{{ .HTTPPort }}`). This only works if the build machine is reachable from `vmbr300` (10.130.30.x/24). A remote CI runner outside the home network cannot serve this file. Needs a solution before automating `just image` — options include hosting `preseed.cfg` on an internal web server (e.g. pihole01) or embedding it directly in a custom ISO.
+- **Packer auth** — currently `gigu@pam` username + password. Migrate to API token before CI/CD (noted in Packer conventions above).
 
 ## What not to do
 
