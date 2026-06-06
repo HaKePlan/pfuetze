@@ -1,0 +1,15 @@
+# Local secrets env file (loaded by Justfile for all targets)
+.env
+.gaebigicommands
+
+# OpenTofu
+infra/terraform.tfstate
+infra/terraform.tfstate.backup
+infra/.terraform/
+infra/terraform.tfvars
+
+# Ansible
+config/vault-password
+
+# macOS
+.DS_Store
