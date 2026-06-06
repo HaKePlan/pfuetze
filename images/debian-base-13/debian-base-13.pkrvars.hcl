@@ -10,5 +10,5 @@ iso_url      = "https://cdimage.debian.org/debian-cd/current/amd64/iso-cd/debian
 iso_checksum = "sha256:95838884f5ea6c82421dfe6baaa5a639dbbe6756c1e380f9fe7a7cb0c1949d2a"
 
 # Override default preseed URL (Packer built-in HTTP server) with GitHub raw URL.
-# Fill in once the repo is pushed to GitHub.
-preseed_url = "https://raw.githubusercontent.com/<user>/<repo>/main/images/debian-base/http/preseed.cfg"
+# Is used for day 0 operations; at one point, we will switch to internal store in the network
+preseed_url = "https://raw.githubusercontent.com/HaKePlan/pfuetze/main/images/debian-base-13/http/preseed.cfg"

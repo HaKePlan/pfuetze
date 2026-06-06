@@ -51,18 +51,20 @@ source "proxmox-iso" "debian-base" {
   node                     = var.proxmox_node
 
   vm_id   = var.vm_id
-  vm_name = "debian-base"
+  vm_name = "debian-base-13"
   tags    = "template;debian"
 
-  iso_url          = var.iso_url
-  iso_checksum     = var.iso_checksum
-  iso_storage_pool = "dir_storage"
-  unmount_iso      = true
+  boot_iso {
+    iso_url          = var.iso_url
+    iso_checksum     = var.iso_checksum
+    iso_storage_pool = "dir_storage"
+    unmount          = true
+  }
 
   os              = "l26"
   cpu_type        = "host"
-  cores           = 1
-  memory          = 1024
+  cores           = 2
+  memory          = 2048
   scsi_controller = "virtio-scsi-pci"
 
   disks {
@@ -103,7 +105,8 @@ build {
   provisioner "shell" {
     inline = [
       "apt-get update",
-      "DEBIAN_FRONTEND=noninteractive apt-get install -y cloud-init qemu-guest-agent",
+      "DEBIAN_FRONTEND=noninteractive apt-get install -y cloud-init qemu-guest-agent locales",
+      "echo 'de_CH.UTF-8 UTF-8' >> /etc/locale.gen && locale-gen",
       "systemctl enable qemu-guest-agent",
       "cloud-init clean",
       "truncate -s 0 /etc/machine-id",

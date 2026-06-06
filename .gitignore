@@ -11,5 +11,8 @@ infra/terraform.tfvars
 # Ansible
 config/vault-password
 
+# Packer
+images/**/downloaded_iso_path/
+
 # macOS
 .DS_Store

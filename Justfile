@@ -11,6 +11,15 @@ default:
 
 # ── images (packer) ──────────────────────────────────────────────────────────
 
-# build a VM image template (default: debian-base)
-images target="debian-base":
-    cd images/{{target}} && packer init . && packer build -var-file={{target}}.pkrvars.hcl .
+# build a VM image template
+image target="debian-base-13":
+    cd images/{{target}} && packer build -var-file={{target}}.pkrvars.hcl .
+
+# initialise packer template (run once after cloning)
+images-init target="debian-base-13":
+    cd images/{{target}} && packer init .
+
+# validate packer templates
+images-validate target="debian-base-13":
+    cd images/{{target}} && packer validate -var-file={{target}}.pkrvars.hcl .
+

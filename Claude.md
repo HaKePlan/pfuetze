@@ -86,14 +86,14 @@ pfuetze/
 
 The Justfile is the single entrypoint and must always reflect what actually exists. Do not add targets for phases or tools that haven't been implemented yet. Update the Justfile in the same step as the work it exposes.
 
-Current Justfile targets: `default` (lists available targets), `images` (build Packer templates).
+Current Justfile targets: `default` (lists available targets), `image` (build Packer template, default: `debian-base-13`), `images-validate` (validate Packer template without building).
 
 ## Migration status
 
 Track which parts have been migrated. Update this section as work progresses.
 
-- [x] **Phase 0** — Repo skeleton and Justfile: `infra/`, `config/`, `images/` created; Justfile has `default` + `images` targets
-- [x] **Phase 1** — Packer: Debian base image template complete (`debian-base.pkr.hcl`, `http/preseed.cfg`, `*.pkrvars.hcl.example`); run with `just images`
+- [x] **Phase 0** — Repo skeleton and Justfile: `infra/`, `config/`, `images/` created; Justfile has `default` + `image` + `images-validate` targets
+- [x] **Phase 1** — Packer: Debian 13 base image template complete (`images/debian-base-13/debian-base-13.pkr.hcl`, `http/preseed.cfg`, `*.pkrvars.hcl`); builds to Proxmox template VMID 9002 named `debian-base-13`; run with `just image`
 - [ ] **Phase 2** — OpenTofu: VM lifecycle (replaces `manage_vms.yml`). Requirements: cloud-init must create `gigu` user + inject root SSH key so Ansible can connect on first boot.
 - [ ] **Phase 3** — Ansible: Proxmox node config (replaces `proxmox-ansible`).
 - [ ] **Phase 4** — Ansible: VM service config (replaces `ansible-home`). Base role must: create gigu user, deploy SSH keys to root + gigu, add gigu to sudo, deploy `sshd_config.d/additional.conf` (disables root SSH + password auth).
