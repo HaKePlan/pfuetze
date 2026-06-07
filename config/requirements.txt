@@ -1,0 +1,5 @@
+# Python deps for the Ansible venv (config/venv).
+ansible-core==2.21.0
+proxmoxer==2.3.0
+requests==2.34.2
+ansible-lint==26.4.0

@@ -1,0 +1,9 @@
+---
+roles:
+  - src: lae.proxmox
+  - src: geerlingguy.ntp
+
+collections:
+  - name: community.general
+  - name: community.proxmox
+  - name: ansible.posix

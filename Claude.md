@@ -47,11 +47,11 @@ pfuetze/
 | `debian-base-13` | 9002 | Current Packer output — used by OpenTofu as clone source |
 | `debian12-template` | 9001 | Legacy template — do not use |
 
-**Firewall:** IPFire (`stinkfisch`) at `10.130.2.1` — being replaced by OPNsense. Do not configure IPFire. OPNsense config will be added later under `config/playbooks/network.yml` using the `ansibleguy.opnsense` collection.
+**Firewall:** IPFire (`stinkfisch`) at `10.130.2.1` — runs DNS (Unbound), firewall, and routing. Slated for eventual replacement by OPNsense (Phase 5), but that may be a year or more out — treat `stinkfisch` as durable, long-term infrastructure, not as something about to disappear. "Do not configure IPFire" means: do not build new firewall/routing tooling for it (that work belongs to OPNsense once Phase 5 lands). It does NOT mean avoid managing DNS records on its Unbound instance — that is ongoing, permanent Ansible work (see DNS below). OPNsense config will be added later under `config/playbooks/network.yml` using the `ansibleguy.opnsense` collection.
 
 **Network:** Multiple VLANs. `vmbr300` is the main VM bridge. Proxmox networking config lives in `config/playbooks/networking.yml` using Jinja2 templates.
 
-**DNS:** Unbound runs inside a VM. DNS entries for VMs are managed via Ansible (`tasks/manage_dns_entries.yml`). OpenTofu does not manage DNS.
+**DNS:** Unbound runs on `stinkfisch` (IPFire), config at `/etc/unbound/local.d`. DNS entries for VMs are managed via Ansible (`tasks/manage_dns_entries.yml`, migrating to `config/playbooks/` in Phase 3 with VM IPs derived from the dynamic Proxmox inventory rather than duplicated in host_vars). OpenTofu does not manage DNS. When Phase 5 eventually moves DNS off `stinkfisch`, re-pointing is a one-variable change (`dns_server` in `group_vars/all.yml`).
 
 ## Ansible conventions
 

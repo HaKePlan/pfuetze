@@ -1,0 +1,4 @@
+stinkfisch ansible_host=10.130.2.1
+
+[proxmox]
+chuebel ansible_host=10.130.10.10 ansible_ssh_private_key_file=~/.ssh/id_rsa
