@@ -14,6 +14,7 @@
             api_user: "{{ api_user }}"
             api_password: "{{ api_password }}"
             api_host: "{{ api_host }}"
+            validate_certs: "{{ api_validate_certs }}"
             hostname: "{{ inventory_hostname }}"
             snapname: "{{ snapshot_name }}"
             state: rollback
@@ -23,5 +24,6 @@
             api_user: "{{ api_user }}"
             api_password: "{{ api_password }}"
             api_host: "{{ api_host }}"
+            validate_certs: "{{ api_validate_certs }}"
             name: "{{ inventory_hostname }}"
             state: started

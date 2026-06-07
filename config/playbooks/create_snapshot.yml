@@ -14,6 +14,7 @@
             api_user: "{{ api_user }}"
             api_password: "{{ api_password }}"
             api_host: "{{ api_host }}"
+            validate_certs: "{{ api_validate_certs }}"
             hostname: "{{ inventory_hostname }}"
             snapname: "{{ '-'.join(snapshot_name.split()).replace('.', '_') }}"
             vmstate: false

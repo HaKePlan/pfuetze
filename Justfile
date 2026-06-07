@@ -43,15 +43,15 @@ infra-plan:
 infra-apply:
     cd infra && tofu apply
 
-# apply changes for single vm (target needs prefix: proxmox_virtual_environment_vm)
+# apply changes for single vm
 [group('infra')]
 infra-apply-target target:
-    cd infra && tofu apply -target {{target}}
+    cd infra && tofu apply -target proxmox_virtual_environment_vm.{{target}}
 
-# destroy single vm (target needs prefix: proxmox_virtual_environment_vm)
+# destroy single vm
 [group('infra')]
 infra-destroy-target target:
-    cd infra && tofu destroy -target {{target}}
+    cd infra && tofu destroy -target proxmox_virtual_environment_vm.{{target}}
 
 # ── config (ansible) ──────────────────────────────────────────────────────────
 
@@ -92,12 +92,12 @@ snapshot-remove name snapshot:
 # create a vm (tofu apply, then register its dns entry — vm must exist first so the dns playbook can find its ip)
 [group('lifecycle')]
 create-vm name:
-    just infra-apply-target target=proxmox_virtual_environment_vm.{{name}}
+    just infra-apply-target {{name}}
     cd config && venv/bin/ansible-playbook playbooks/manage_dns_entries.yml --limit {{name}}
 
 # destroy a vm (deregister its dns entry first, then tofu destroy — once destroyed it vanishes from the dynamic inventory)
 [group('lifecycle')]
 destroy-vm name:
     cd config && venv/bin/ansible-playbook playbooks/manage_dns_entries.yml --limit {{name}} -e dns_state=absent
-    just infra-destroy-target target=proxmox_virtual_environment_vm.{{name}}
+    just infra-destroy-target {{name}}
 

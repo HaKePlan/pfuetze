@@ -2,3 +2,6 @@
 # Proxmox API access for VM-adjacent operations (snapshots)
 api_host: 10.130.10.10
 api_user: gigu@pam
+# chuebel's API uses a self-signed cert (pve_ssl_letsencrypt: false) — same reason
+# the dynamic inventory (inventory/proxmox.yml) sets validate_certs: false
+api_validate_certs: false
