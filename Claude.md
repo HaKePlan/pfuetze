@@ -26,7 +26,7 @@ pfuetze/
 - **OpenTofu** (not Terraform) for infrastructure lifecycle. Use `tofu` commands, not `terraform`.
 - **Packer** for base image building. Proxmox builder (`proxmox-iso` or `proxmox-clone`).
 - **Ansible** for configuration. Use FQCNs (e.g. `ansible.builtin.copy`, not just `copy`).
-- **Justfile** as the single entrypoint. Keep targets: `infra`, `images`, `config`, `config-infra`, `config-services`, `all`.
+- **Justfile** as the single entrypoint. Keep targets: `infra`, `images`, `config`, `config-proxmox`, `config-services`, `all`.
 
 ## Infrastructure facts
 
@@ -49,7 +49,7 @@ pfuetze/
 
 **Firewall:** IPFire (`stinkfisch`) at `10.130.2.1` — runs DNS (Unbound), firewall, and routing. Slated for eventual replacement by OPNsense (Phase 5), but that may be a year or more out — treat `stinkfisch` as durable, long-term infrastructure, not as something about to disappear. "Do not configure IPFire" means: do not build new firewall/routing tooling for it (that work belongs to OPNsense once Phase 5 lands). It does NOT mean avoid managing DNS records on its Unbound instance — that is ongoing, permanent Ansible work (see DNS below). OPNsense config will be added later under `config/playbooks/network.yml` using the `ansibleguy.opnsense` collection.
 
-**Network:** Multiple VLANs. `vmbr300` is the main VM bridge. Proxmox networking config lives in `config/playbooks/networking.yml` using Jinja2 templates.
+**Network:** Multiple VLANs. `vmbr300` is the main VM bridge. Proxmox networking config lives in `config/playbooks/networking.yml` using Jinja2 templates. This playbook is intentionally NOT imported into `proxmox.yml`/`site.yml` — rewriting `/etc/network/interfaces` remotely can sever the SSH connection to the node, so it must stay a deliberate, manually-triggered operation (`just config-networking`), run only when the network topology actually changes, never as part of routine convergence.
 
 **DNS:** Unbound runs on `stinkfisch` (IPFire), config at `/etc/unbound/local.d`. DNS entries for VMs are managed via Ansible (`tasks/manage_dns_entries.yml`, migrating to `config/playbooks/` in Phase 3 with VM IPs derived from the dynamic Proxmox inventory rather than duplicated in host_vars). OpenTofu does not manage DNS. When Phase 5 eventually moves DNS off `stinkfisch`, re-pointing is a one-variable change (`dns_server` in `group_vars/all.yml`).
 
@@ -59,8 +59,8 @@ pfuetze/
 - Inventory: `config/inventory/hosts` for static hosts (chuebel, stinkfisch), `config/inventory/proxmox.yml` for dynamic Proxmox inventory.
 - Dynamic inventory uses `community.proxmox.proxmox` plugin. VMs are grouped by their Proxmox tags.
 - Vault files follow the existing pattern: `vault.yml` alongside `vars.yml` in `host_vars/<host>/`.
-- `config/site.yml` imports `infra.yml` then `services.yml`.
-- `config/infra.yml` covers Proxmox node and networking.
+- `config/site.yml` imports `proxmox.yml` then `services.yml`.
+- `config/proxmox.yml` covers Proxmox node and networking.
 - `config/services.yml` covers all VM service configuration.
 
 ## OpenTofu conventions
@@ -109,6 +109,8 @@ Track which parts have been migrated. Update this section as work progresses.
   - Credentials: endpoint + username hardcoded in `infra/providers.tf`. Only `PROXMOX_VE_PASSWORD` from `.env`.
 - [ ] **Phase 3** — Ansible: Proxmox node config (replaces `proxmox-ansible`).
 - [ ] **Phase 4** — Ansible: VM service config (replaces `ansible-home`). Base role must: create gigu user, deploy SSH keys to root + gigu, add gigu to sudo, deploy `sshd_config.d/additional.conf` (disables root SSH + password auth).
+  - **Parked for Phase 4 — DNS for non-Proxmox hosts:** `manage_dns_entries.yml` is currently VM-only — it derives IP/bridge/domain from live Proxmox facts (`proxmox_netN`/`proxmox_ipconfigN` → `network_domains`), which is what makes multi-homed VMs work. Hosts Ansible will manage but that aren't Proxmox guests (e.g. a Raspberry Pi — own group in the static inventory, static `ansible_host`, no Proxmox bridge to derive a domain from) currently need their `.conf` files hand-created in `/etc/unbound/local.d`. Revisit then: likely needs its own playbook (parallel to `proxmox.yml` for the Proxmox node) plus an explicit `dns_domain`-style host_var, rather than extending the VM-specific playbook. Goal: stop hand-creating those entries.
+  - **Parked idea — `dns_state` → `dns_registration`:** replace the `present`/`absent` extra-var switch (`-e dns_state=absent`, used by `destroy-vm`) with one declarative `dns_registration: bool` host_var (default `true`): `true` ensures the entry exists (today's behavior), `false` both skips creation *and* removes an existing entry — so `destroy-vm` would pass `-e dns_registration=false` instead. One variable drives convergence both ways and doubles as a per-host DNS opt-out. Worth doing together with the item above since both touch the same playbook.
 - [ ] **Phase 5** — OPNsense config (replaces IPFire hand-crafted setup)
 
 ## Before adding CI/CD
@@ -124,5 +126,5 @@ These must be solved before any pipeline work:
 
 - Do not use `community.general.proxmox_kvm` for new VM management — that belongs to OpenTofu now.
 - Do not create a separate venv or `ansible.cfg` per subfolder. One flat config tree under `config/`.
-- Do not split playbooks by tool concern. Split by operational concern: `infra.yml` vs `services.yml`.
+- Do not split playbooks by tool concern. Split by operational concern: `proxmox.yml` vs `services.yml`.
 - Do not introduce new external roles unless necessary. Prefer local roles under `config/roles/`.
