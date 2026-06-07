@@ -1,3 +1,3 @@
 {
-    "ansible.python.interpreterPath": "/Users/severinclauss/it-stuff/pfuetze-infra/config/venv/bin/python"
+    "ansible.python.interpreterPath": "${workspaceFolder}/config/venv/bin/python"
 }

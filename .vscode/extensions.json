@@ -1,0 +1,9 @@
+{
+    "recommendations": [
+        "redhat.ansible",
+        "hashicorp.hcl",
+        "opentofu.vscode-opentofu",
+        "redhat.vscode-yaml",
+        "nefrob.vscode-just-syntax"
+    ]
+}

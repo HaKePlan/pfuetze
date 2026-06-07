@@ -26,7 +26,7 @@ pfuetze/
 - **OpenTofu** (not Terraform) for infrastructure lifecycle. Use `tofu` commands, not `terraform`.
 - **Packer** for base image building. Proxmox builder (`proxmox-iso` or `proxmox-clone`).
 - **Ansible** for configuration. Use FQCNs (e.g. `ansible.builtin.copy`, not just `copy`).
-- **Justfile** as the single entrypoint. Keep targets: `infra`, `images`, `config`, `config-proxmox`, `config-services`, `all`.
+- **Justfile** as the single entrypoint. Targets are organized into named groups (`images`, `infra`, `config`, `snapshots`, `lifecycle`) — see "Justfile convention" below for the current list.
 
 ## Infrastructure facts
 
@@ -93,7 +93,13 @@ pfuetze/
 
 The Justfile is the single entrypoint and must always reflect what actually exists. Do not add targets for phases or tools that haven't been implemented yet. Update the Justfile in the same step as the work it exposes.
 
-Current Justfile targets: `default` (lists available targets), `image` (build Packer template, default: `debian-base-13`), `images-init`, `images-validate`, `infra-init`, `infra-plan`, `infra-apply`.
+Current Justfile targets, grouped as in the file itself (`just --list` is the live source of truth):
+- `default` — lists available targets
+- **images**: `image`, `images-init`, `images-validate`
+- **infra**: `infra-init`, `infra-lint`, `infra-plan`, `infra-apply`, `infra-apply-target`, `infra-destroy-target`
+- **config**: `config-init`, `config-lint`, `config-proxmox`, `config-networking`, `config-dns-reconcile`
+- **snapshots**: `snapshot-create`, `snapshot-rollback`, `snapshot-remove`
+- **lifecycle**: `create-vm`, `destroy-vm`
 
 ## Migration status
 

@@ -1,6 +1,6 @@
 # pfuetze — homelab infrastructure
 # Usage: just <target>
-# Requires: just, opentofu, packer, ansible
+# Requires: just, opentofu, packer, ansible, tflint
 
 set dotenv-load := true
 set dotenv-filename := ".env"
@@ -33,6 +33,11 @@ images-validate target="debian-base-13":
 infra-init:
     cd infra && tofu init
 
+# lint terraform/opentofu files
+[group('infra')]
+infra-lint:
+    cd infra && tflint
+
 # show planned changes
 [group('infra')]
 infra-plan:
@@ -54,6 +59,18 @@ infra-destroy-target target:
     cd infra && tofu destroy -target proxmox_virtual_environment_vm.{{target}}
 
 # ── config (ansible) ──────────────────────────────────────────────────────────
+
+# initialise the ansible venv + galaxy deps (run once after cloning)
+[group('config')]
+config-init:
+    python3 -m venv config/venv
+    config/venv/bin/pip install -r config/requirements.txt
+    cd config && venv/bin/ansible-galaxy install -r requirements.yml
+
+# lint ansible playbooks/roles
+[group('config')]
+config-lint:
+    cd config && venv/bin/ansible-lint
 
 # configure the chuebel proxmox node
 [group('config')]
