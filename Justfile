@@ -45,3 +45,21 @@ infra-apply-target target:
 infra-destroy-target target:
     cd infra && tofu destroy -target {{target}}
 
+# ── config (ansible) ──────────────────────────────────────────────────────────
+
+# configure the chuebel proxmox node
+config-infra:
+    cd config && venv/bin/ansible-playbook infra.yml
+
+# ── lifecycle (infra + config combined) ──────────────────────────────────────
+
+# create a vm (tofu apply, then register its dns entry — vm must exist first so the dns playbook can find its ip)
+create-vm name:
+    just infra-apply-target target=proxmox_virtual_environment_vm.{{name}}
+    cd config && venv/bin/ansible-playbook playbooks/manage_dns_entries.yml --limit {{name}}
+
+# destroy a vm (deregister its dns entry first, then tofu destroy — once destroyed it vanishes from the dynamic inventory)
+destroy-vm name:
+    cd config && venv/bin/ansible-playbook playbooks/manage_dns_entries.yml --limit {{name}} -e dns_state=absent
+    just infra-destroy-target target=proxmox_virtual_environment_vm.{{name}}
+

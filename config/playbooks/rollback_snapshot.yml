@@ -1,0 +1,27 @@
+---
+- name: Rollback a vm snapshot
+  hosts: vm
+  gather_facts: false
+  tasks:
+    - name: Create snapshot name from input
+      ansible.builtin.include_tasks: ../tasks/snapshot-name.yml
+
+    - name: Rollback snapshot
+      delegate_to: localhost
+      block:
+        - name: Try to rollback to snapshot
+          community.general.proxmox_snap:
+            api_user: "{{ api_user }}"
+            api_password: "{{ api_password }}"
+            api_host: "{{ api_host }}"
+            hostname: "{{ inventory_hostname }}"
+            snapname: "{{ snapshot_name }}"
+            state: rollback
+
+        - name: Start vm
+          community.general.proxmox_kvm:
+            api_user: "{{ api_user }}"
+            api_password: "{{ api_password }}"
+            api_host: "{{ api_host }}"
+            name: "{{ inventory_hostname }}"
+            state: started

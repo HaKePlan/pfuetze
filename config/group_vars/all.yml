@@ -1,0 +1,6 @@
+---
+dns_server: stinkfisch
+dns_hosts_config_directory: /etc/unbound/local.d
+
+network_domains:
+  vmbr300: srv.pfuetze.xyz

@@ -14,6 +14,13 @@ validate_certs: false
 strict: false
 want_facts: true
 
+# chuebel is already defined statically (inventory/hosts) with its own
+# connection details (root, id_rsa) -- excluding nodes here keeps this
+# source focused on discovering guests, and avoids it clobbering chuebel's
+# vars (e.g. compose's blanket ansible_user: gigu would otherwise apply to
+# the node too)
+exclude_nodes: true
+
 compose:
   vm_ip: proxmox_ipconfig0.ip.split('/')[0]
   ansible_host: proxmox_ipconfig0.ip.split('/')[0]
@@ -22,3 +29,6 @@ compose:
 keyed_groups:
   - key: proxmox_tags_parsed
     separator: ""
+
+groups:
+  vm: proxmox_vmtype == "qemu" and not proxmox_template

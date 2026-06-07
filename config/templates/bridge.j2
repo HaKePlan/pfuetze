@@ -1,0 +1,8 @@
+{% if item.bridge | d(false) %}
+auto vmbr{{ item.id }}
+iface vmbr{{ item.id }} inet manual
+  bridge_ports {{ item.name }}
+  bridge-stp off
+  bridge-fd 0
+  # {{ item.name }} bridge
+{% endif %}

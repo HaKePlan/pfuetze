@@ -1,0 +1,16 @@
+---
+nic_interfaces:
+  - name: enp2s0
+
+nic_vlans:
+  - name: enp2s0.100
+    interface: enp2s0
+    id: 100
+    static: true
+    ip: 10.130.10.10
+    gw: 10.130.10.1
+    netmask: 255.255.255.0
+  - name: enp2s0.300
+    interface: enp2s0
+    id: 300
+    bridge: true

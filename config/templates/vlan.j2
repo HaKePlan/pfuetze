@@ -1,0 +1,13 @@
+
+auto {{ item.name }}
+iface {{ item.name }} inet {% if item.dhcp | d(false) %}dhcp{%elif item.static | d(false) %}static{% else %}manual{% endif %}
+
+  vlan-id {{ item.id }}
+  vlan-raw-device {{ item.interface }}
+{% if item.static | d(false) %}
+  address {{ item.ip }}
+  gateway {{ item.gw }}
+  {% if 'netmask' in item %}
+  netmask {{ item.netmask }}
+  {% endif %}
+{% endif %}

@@ -1,3 +1,68 @@
 ---
 - name: Configure the chuebel Proxmox node
   hosts: proxmox
+  pre_tasks:
+    - name: Create a LVM-thin pool
+      community.general.lvol:
+        vg: "{{ lvm_thin_pool.vg_name }}"
+        size: "{{ lvm_thin_pool.size }}"
+        thinpool: "{{ lvm_thin_pool.name }}"
+
+    - name: Create a logical volume for dir storage
+      community.general.lvol:
+        vg: "{{ item.vg }}"
+        lv: "{{ item.lv_name }}"
+        size: "{{ item.size }}"
+      loop: "{{ lvm_volumes }}"
+      loop_control:
+        label: "{{ item.lv_name }}"
+
+    - name: Format the logical volume with ext4
+      community.general.filesystem:
+        fstype: ext4
+        dev: "/dev/{{ item.vg }}/{{ item.lv_name }}"
+      loop: "{{ lvm_volumes }}"
+      loop_control:
+        label: "{{ item.lv_name }}"
+
+    - name: Create the mount point directory
+      ansible.builtin.file:
+        path: "{{ item.mount_path }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop: "{{ lvm_volumes }}"
+      loop_control:
+        label: "{{ item.lv_name }}"
+
+    - name: Mount the logical volume
+      ansible.posix.mount:
+        path: "{{ item.mount_path }}"
+        src: "/dev/{{ item.vg }}/{{ item.lv_name }}"
+        fstype: ext4
+        state: mounted
+      loop: "{{ lvm_volumes }}"
+      loop_control:
+        label: "{{ item.lv_name }}"
+
+    - name: Ensure mount is persistent
+      ansible.posix.mount:
+        path: "{{ item.mount_path }}"
+        src: "/dev/{{ item.vg }}/{{ item.lv_name }}"
+        fstype: ext4
+        opts: defaults
+        state: present
+      loop: "{{ lvm_volumes }}"
+      loop_control:
+        label: "{{ item.lv_name }}"
+
+  roles:
+    - geerlingguy.ntp
+    - lae.proxmox
+
+  tasks:
+    - name: Install base packages
+      ansible.builtin.package:
+        name: "{{ base_package_list }}"
+        state: present

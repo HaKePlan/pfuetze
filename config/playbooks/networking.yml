@@ -1,0 +1,18 @@
+---
+- name: Configure proxmox node networking
+  hosts: proxmox
+  tasks:
+    - name: Install bridge-utils
+      ansible.builtin.package:
+        name:
+          - bridge-utils
+          - ethtool
+        state: present
+
+    - name: Create interface configs
+      ansible.builtin.template:
+        src: ../templates/interfaces-combined.j2  # noqa: no-relative-paths -- playbook-relative; resolves to config/templates/
+        dest: "/etc/network/interfaces"
+        owner: root
+        group: root
+        mode: "0644"

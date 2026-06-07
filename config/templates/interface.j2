@@ -1,0 +1,13 @@
+
+{% if ( item.dhcp | d(false) ) or ( item.static | d(false) ) %}
+auto {{ item.name }}
+{% endif %}
+iface {{ item.name }} inet {% if item.dhcp | d(false) %}dhcp{%elif item.static | d(false) %}static{% else %}manual{% endif %}
+
+{% if item.static | d(false) %}
+  address {{ item.ip }}
+  gateway {{ item.gw }}
+  {% if 'netmask' in item %}
+  netmask {{ item.netmask | d('255.255.255.0') }}
+  {% endif %}
+{% endif %}

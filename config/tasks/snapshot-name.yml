@@ -1,0 +1,21 @@
+---
+- name: Create snapshot name from input
+  when: snapshot_name is not defined
+  block:
+    - name: Ask for snapshot name
+      ansible.builtin.pause:
+        prompt: "Enter snapshot name"
+      register: prompt
+      no_log: true
+      run_once: true
+
+    - name: Set snapshot name
+      ansible.builtin.set_fact:
+        snapshot_name: "{{ prompt.user_input }}"
+      no_log: true
+      run_once: true
+
+    - name: Debug snapshot name
+      ansible.builtin.debug:
+        var: snapshot_name
+        verbosity: 2

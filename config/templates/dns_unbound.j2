@@ -1,0 +1,8 @@
+#jinja2: lstrip_blocks: True, trim_blocks: True
+# {{ ansible_managed }}
+
+server:
+{% for item in vm_networks %}
+    local-data: "{{ inventory_hostname }}.{{ network_domains[item.bridge] }} 60 IN A {{ item.ip }}"
+    local-data: "{{ item.ip.split('.') | reverse | join('.') }}.in-addr.arpa 60 IN PTR {{ inventory_hostname }}.{{ network_domains[item.bridge] }}"
+{% endfor %}

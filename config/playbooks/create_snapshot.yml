@@ -1,0 +1,20 @@
+---
+- name: Create a vm snapshot
+  hosts: vm
+  gather_facts: false
+  tasks:
+    - name: Create snapshot name from input
+      ansible.builtin.include_tasks: ../tasks/snapshot-name.yml
+
+    - name: Create vm snapshot
+      delegate_to: localhost
+      block:
+        - name: Create vm snapshot
+          community.general.proxmox_snap:
+            api_user: "{{ api_user }}"
+            api_password: "{{ api_password }}"
+            api_host: "{{ api_host }}"
+            hostname: "{{ inventory_hostname }}"
+            snapname: "{{ '-'.join(snapshot_name.split()).replace('.', '_') }}"
+            vmstate: false
+            state: present

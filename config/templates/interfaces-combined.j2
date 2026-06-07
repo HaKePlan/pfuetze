@@ -1,0 +1,34 @@
+#jinja2: lstrip_blocks: True, trim_blocks: True
+# {{ ansible_managed }}
+auto lo
+iface lo inet loopback
+
+# interfaces
+{% for item in (nic_interfaces | d([])) %}
+{% include 'interface.j2' %}
+{% endfor %}
+
+
+# bonds
+{% for item in (nic_bonding | d([]) ) %}
+{% include 'bond.j2' %}
+{% endfor %}
+
+
+# vlans
+{% for item in (nic_vlans | d([]) ) %}
+{% include 'vlan.j2' %}
+{% endfor %}
+
+
+# bridges
+{% for item in (nic_vlans | d([]) ) %}
+{% include 'bridge.j2' %}
+{% endfor %}
+
+{% if untagged_nic is defined %}
+auto vmbr0
+iface vmbr0 inet manual
+  bridge_ports {{ untagged_nic }}
+    # untagged bridge
+{% endif %}

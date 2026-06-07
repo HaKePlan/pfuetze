@@ -1,0 +1,57 @@
+---
+- name: Manage DNS entries for VMs on stinkfisch
+  hosts: vm
+  gather_facts: false
+  vars:
+    dns_state: present
+  handlers:
+    - name: Restart unbound service
+      ansible.builtin.command: "/etc/init.d/unbound restart"
+      delegate_to: "{{ dns_server }}"
+      run_once: true  # noqa: run-once[task] -- single delegated host, restart it once
+      register: unbound_restart
+      changed_when: >
+        unbound_restart.stdout.splitlines() | select('search', '\\[  OK  \\]') | list | length == unbound_restart.stdout.splitlines() | length
+      failed_when: unbound_restart.stderr != ""
+
+  tasks:
+    # Proxmox exposes each NIC as a separate proxmox_netN / proxmox_ipconfigN
+    # fact pair rather than a list, so we collect them into a kvm.network-shaped
+    # list here. This keeps the VM's IP/bridge sourced solely from the live
+    # Proxmox state (via the dynamic inventory) -- never duplicated in host_vars.
+    - name: Discover VM network interfaces from dynamic inventory facts
+      ansible.builtin.set_fact:
+        vm_networks: "{{ vm_networks | d([]) + [{'bridge': nic.bridge, 'ip': nic_ip}] }}"
+      vars:
+        nic: "{{ hostvars[inventory_hostname]['proxmox_net' ~ item] }}"
+        nic_ip: "{{ hostvars[inventory_hostname]['proxmox_ipconfig' ~ item].ip.split('/')[0] }}"
+      loop: "{{ range(0, 8) | list }}"
+      loop_control:
+        label: "net{{ item }}"
+      when:
+        - ('proxmox_net' ~ item) in hostvars[inventory_hostname]
+        - ('proxmox_ipconfig' ~ item) in hostvars[inventory_hostname]
+        - "'ip' in hostvars[inventory_hostname]['proxmox_ipconfig' ~ item]"
+
+    - name: Create DNS entry for {{ inventory_hostname }}
+      when: dns_state == 'present'
+      delegate_to: "{{ dns_server }}"
+      block:
+        - name: Render unbound config for {{ inventory_hostname }}
+          ansible.builtin.template:
+            src: ../templates/dns_unbound.j2  # noqa: no-relative-paths -- playbook-relative; resolves to config/templates/
+            dest: "{{ dns_hosts_config_directory }}/{{ inventory_hostname }}.conf"
+            owner: root
+            group: root
+            mode: "0644"
+          notify: Restart unbound service
+
+    - name: Remove DNS entry for {{ inventory_hostname }}
+      when: dns_state == 'absent'
+      delegate_to: "{{ dns_server }}"
+      block:
+        - name: Remove unbound config for {{ inventory_hostname }}
+          ansible.builtin.file:
+            path: "{{ dns_hosts_config_directory }}/{{ inventory_hostname }}.conf"
+            state: absent
+          notify: Restart unbound service

@@ -1,0 +1,19 @@
+---
+- name: Remove a vm snapshot
+  hosts: vm
+  gather_facts: false
+  tasks:
+    - name: Create snapshot name from input
+      ansible.builtin.include_tasks: ../tasks/snapshot-name.yml
+
+    - name: Remove vm snapshot
+      delegate_to: localhost
+      block:
+        - name: Remove snapshot
+          community.general.proxmox_snap:
+            api_user: "{{ api_user }}"
+            api_password: "{{ api_password }}"
+            api_host: "{{ api_host }}"
+            hostname: "{{ inventory_hostname }}"
+            snapname: "{{ snapshot_name }}"
+            state: absent
